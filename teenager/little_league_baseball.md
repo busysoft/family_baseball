@@ -9,8 +9,8 @@
 
 规模：遍布全球超过80个国家和地区，拥有数百万名球员。
 
-## [历史](teenager/little_league_baseball_history.md)
+## [历史](little_league_baseball_history.md)
 
-## [年龄组别](teenager/little_league_baseball_age.md)
+## [年龄组别](little_league_baseball_age.md)
 
 
