@@ -2,7 +2,7 @@
 >青少年棒球知识
 
 # 目录
-## [Little League](teenager/little_league_baseball.md)
+## [Little League](little_league_baseball.md)
 
 ## Pony
 
