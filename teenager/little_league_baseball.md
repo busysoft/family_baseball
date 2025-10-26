@@ -1,5 +1,5 @@
 
-# Little League Baseball 世界少棒锦标赛
+# Little League Baseball 世界少棒联盟
 
 中文名称：世界少棒联盟
 
