@@ -8,6 +8,7 @@
 ### [目前现状](histrory/current_state_of_baseball2025.md)
 
 ## 棒球知识
+### [青少年](teenager/teenager.md)
 
 ## 棒球练习
 
