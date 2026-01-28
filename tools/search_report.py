@@ -173,6 +173,33 @@ def format_markdown(query, sections):
     return "\n".join(lines)
 
 
+def extract_page_summary(url, max_chars=200):
+    try:
+        html = fetch(url)
+    except requests.RequestException:
+        return ""
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "noscript"]):
+        tag.decompose()
+    text = " ".join(soup.get_text(" ", strip=True).split())
+    if not text:
+        return ""
+    summary = text[:max_chars]
+    return summary
+
+
+def enrich_items(items):
+    enriched = []
+    for item in items:
+        page_summary = extract_page_summary(item["url"])
+        if page_summary:
+            snippet = item.get("snippet", "")
+            combined = f"{snippet} {page_summary}".strip()
+            item["snippet"] = combined
+        enriched.append(item)
+    return enriched
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=(
@@ -196,21 +223,21 @@ def main():
 
     for source in sources:
         if source == "wikipedia":
-            items = search_wikipedia(args.query)
+            items = enrich_items(search_wikipedia(args.query))
             sections.append(("维基百科", items))
         elif source == "mlb":
-            items = search_mlb(args.query)
+            items = enrich_items(search_mlb(args.query))
             sections.append(("MLB 官方网站", items))
         elif source == "google":
             html = fetch("https://www.google.com/search", params={"q": args.query, "hl": "zh-CN"})
-            items = parse_google_results(html)
+            items = enrich_items(parse_google_results(html))
             sections.append(("Google 搜索（前10条）", items))
         elif source == "youtube":
             html = fetch(
                 "https://www.youtube.com/results",
                 params={"search_query": args.query, "hl": "zh-CN"},
             )
-            items = parse_youtube_results(html)
+            items = enrich_items(parse_youtube_results(html))
             sections.append(("YouTube 搜索（前10条）", items))
         else:
             print(f"未知来源：{source}", file=sys.stderr)
