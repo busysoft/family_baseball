@@ -4,6 +4,7 @@
 ## 信息检索工具
 
 `tools/search_report.py` 可根据输入关键词检索维基百科、MLB 官方网站、Google 搜索前 10 条与 YouTube 搜索前 10 条结果，生成中文 Markdown 报告。
+`tools/interactive_robot.py` 提供交互式流程，引导输入问题并输出整合后的 Markdown 报告。
 
 ### 在 GitHub Actions 运行
 
@@ -17,6 +18,12 @@
 
 ```bash
 python3 tools/search_report.py --query "棒球 历史" --sources "wikipedia,mlb,google,youtube" --output report.md
+```
+
+### 交互式使用
+
+```bash
+python3 tools/interactive_robot.py
 ```
 
 ### 本地测试

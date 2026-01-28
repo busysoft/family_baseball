@@ -146,7 +146,29 @@ def search_mlb(query, limit=10):
     return results
 
 
-def format_markdown(query, sections):
+def aggregate_items(sections, limit=10):
+    combined = []
+    seen = set()
+    for source_name, items in sections:
+        for item in items:
+            url = item.get("url", "")
+            if not url or url in seen:
+                continue
+            seen.add(url)
+            combined.append(
+                {
+                    "source": source_name,
+                    "title": item.get("title", ""),
+                    "snippet": item.get("snippet", ""),
+                    "url": url,
+                }
+            )
+            if len(combined) >= limit:
+                return combined
+    return combined
+
+
+def format_markdown(query, sections, summary_items=None):
     today = datetime.date.today().isoformat()
     lines = [
         f"# 棒球信息检索报告",
@@ -155,6 +177,22 @@ def format_markdown(query, sections):
         f"- 生成日期：{today}",
         "",
     ]
+    if summary_items is not None:
+        lines.append("## 综合整理")
+        lines.append("")
+        if not summary_items:
+            lines.append("暂无结果或访问受限。")
+            lines.append("")
+        else:
+            lines.append("| 序号 | 来源 | 标题 | 摘要 | 链接 |")
+            lines.append("| --- | --- | --- | --- | --- |")
+            for idx, item in enumerate(summary_items, start=1):
+                title = item["title"].replace("|", " ")
+                snippet = unescape(item.get("snippet", "")).replace("|", " ")
+                source = item.get("source", "").replace("|", " ")
+                url = item["url"]
+                lines.append(f"| {idx} | {source} | {title} | {snippet} | {url} |")
+            lines.append("")
     for name, items in sections:
         lines.append(f"## {name}")
         lines.append("")
@@ -200,6 +238,37 @@ def enrich_items(items):
     return enriched
 
 
+def build_sections(query, sources):
+    sections = []
+    for source in sources:
+        if source == "wikipedia":
+            items = enrich_items(search_wikipedia(query))
+            sections.append(("维基百科", items))
+        elif source == "mlb":
+            items = enrich_items(search_mlb(query))
+            sections.append(("MLB 官方网站", items))
+        elif source == "google":
+            html = fetch("https://www.google.com/search", params={"q": query, "hl": "zh-CN"})
+            items = enrich_items(parse_google_results(html))
+            sections.append(("Google 搜索（前10条）", items))
+        elif source == "youtube":
+            html = fetch(
+                "https://www.youtube.com/results",
+                params={"search_query": query, "hl": "zh-CN"},
+            )
+            items = enrich_items(parse_youtube_results(html))
+            sections.append(("YouTube 搜索（前10条）", items))
+        else:
+            print(f"未知来源：{source}", file=sys.stderr)
+    return sections
+
+
+def generate_report(query, sources):
+    sections = build_sections(query, sources)
+    summary_items = aggregate_items(sections)
+    return format_markdown(query, sections, summary_items=summary_items)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=(
@@ -219,30 +288,7 @@ def main():
     args = parser.parse_args()
 
     sources = [s.strip().lower() for s in args.sources.split(",") if s.strip()]
-    sections = []
-
-    for source in sources:
-        if source == "wikipedia":
-            items = enrich_items(search_wikipedia(args.query))
-            sections.append(("维基百科", items))
-        elif source == "mlb":
-            items = enrich_items(search_mlb(args.query))
-            sections.append(("MLB 官方网站", items))
-        elif source == "google":
-            html = fetch("https://www.google.com/search", params={"q": args.query, "hl": "zh-CN"})
-            items = enrich_items(parse_google_results(html))
-            sections.append(("Google 搜索（前10条）", items))
-        elif source == "youtube":
-            html = fetch(
-                "https://www.youtube.com/results",
-                params={"search_query": args.query, "hl": "zh-CN"},
-            )
-            items = enrich_items(parse_youtube_results(html))
-            sections.append(("YouTube 搜索（前10条）", items))
-        else:
-            print(f"未知来源：{source}", file=sys.stderr)
-
-    content = format_markdown(args.query, sections)
+    content = generate_report(args.query, sources)
     with open(args.output, "w", encoding="utf-8") as handle:
         handle.write(content)
     print(f"已生成：{args.output}")
